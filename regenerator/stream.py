@@ -44,7 +44,7 @@ class Stream:
         `data` exhausts the underlying elements, e.g., for the result of calling `open`,
         then your stream will become empty after the first time it is iterated over.
         '''
-        return cls(lambda: iter(seq))
+        return cls(lambda: iter(data))
 
     @classmethod
     def from_txt(cls, filename, *args, **kwargs):
@@ -108,7 +108,7 @@ class Stream:
         return cls(lambda: map(func, self))
 
     @newstream
-    def random_split(self, frac=0.5, seed=None):
+    def random_split(cls, self, frac=0.5, seed=None):
         '''Split the stream into two new streams with randomly selected elements randomly
         with probability of `frac` of being placed in the first stream and `1.0 - frac` of
         being placed in the second stream.  Note that the same random seed is used when
@@ -122,11 +122,11 @@ class Stream:
 
         def generator_func_a():
             rng = random.Random(seed)
-            return (item for item in rng.random() <= frac)
+            return (item for item in self if rng.random() <= frac)
 
         def generator_func_b():
             rng = random.Random(seed)
-            return (item for item in rng.random() > frac)
+            return (item for item in self if rng.random() > frac)
 
         return cls(generator_func_a), cls(generator_func_b)
 
@@ -166,11 +166,13 @@ class Stream:
         '''
         return self.chain(other)
 
-    def __getitem__(self, idx):
+    @newstream
+    def __getitem__(cls, self, idx):
         '''The `[]` operator calls `.__getitem__` on each element of the stream.  Note
         that it does *not* return the element at the `idx` position, as this is generally
         not efficent for lazily evaluated streams.
         '''
+        # pylint: disable=unexpected-special-method-signature
         return cls(lambda: (item[idx] for item in self))
 
     def __iter__(self):
