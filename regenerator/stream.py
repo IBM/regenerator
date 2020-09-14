@@ -32,19 +32,28 @@ class Stream:
         class method in order to construct a new stream before writing your own generator
         function.
         '''
-        self.generator_func = generator_func
+        self._init(generator_func)
 
-    #### loaders ####
+    def _init(self, generator_func):
+        self.generator_func = generator_func
+        return self
+
+    #### initializers ####
+
+    @classmethod
+    def from_func(cls, generator_func):
+        return cls.__new__(cls)._init(generator_func)
 
     @classmethod
     def from_iterable(cls, data):
         '''Create a new stream from a python iterable, generally a sequence like a list or
         a tuple.  Note that `data` can be pretty much anything you can pass as an argument
-        to `iter` as long as it can be iterated over *multiple times*.  If iterating over
-        `data` exhausts the underlying elements, e.g., for the result of calling `open`,
-        then your stream will become empty after the first time it is iterated over.
+        to the `iter` builtin as long as it can be iterated over *multiple times*.  If
+        iterating over `data` exhausts the underlying elements, e.g., for the result of
+        calling `open`, then your stream will become empty after the first time it is
+        iterated over.
         '''
-        return cls(lambda: iter(data))
+        return cls.from_func(lambda: iter(data))
 
     @classmethod
     def from_txt(cls, filename, *args, **kwargs):
@@ -57,7 +66,7 @@ class Stream:
                 for line in fh:
                     yield line
 
-        return cls(generator_func)
+        return cls.from_func(generator_func)
 
     #### modifiers ####
 
@@ -70,21 +79,21 @@ class Stream:
             it = iter(self)
             return iter(lambda: tuple(itertools.islice(it, size)), ())
 
-        return cls(generator_func)
+        return cls.from_func(generator_func)
 
     # alias for batch
     chunk = batch
 
     @newstream
-    def chain(cls, *args):
+    def chain(cls, self, *args):
         '''Chain multiple streams together sequentially, i.e., return the elements of
         the first stream in `args` followed by the elements in the second stream, et cetra.
         This is analogous to the `itertools.chain` function.
         '''
-        return cls(lambda: itertools.chain(*args))
+        return cls.from_func(lambda: itertools.chain(self, *args))
 
     @newstream
-    def eager(cls, self):
+    def fix(cls, self):
         '''Evaluate the stream and place all items it contains into memory.  This process
         "fixes" the stream at the current point in time.  This may improve computational
         performance because the stream will no longer be lazily evaluated on demand.
@@ -92,20 +101,28 @@ class Stream:
         '''
         return cls.from_iterable(tuple(self))
 
+    eager = fix
+
     @newstream
     def filter(cls, self, func=None):
         '''Keep only items in the stream where `func(item)` evaluates to `True`.
         If `None` (default) then `None` values will be removed.  This is analogous to the
         standard python `filter` function.
         '''
-        return cls(lambda: filter(func, self))
+        return cls.from_func(lambda: filter(func, self))
 
     @newstream
     def map(cls, self, func):
         '''Apply `func` to each element in the stream.  This is analogous to the standard
         python `map` function.
         '''
-        return cls(lambda: map(func, self))
+        return cls.from_func(lambda: map(func, self))
+
+    @newstream
+    def slice(cls, self, *args, **kwargs):
+        return cls.from_func(lambda: itertools.islice(self, *args, **kwargs))
+
+    islice = slice
 
     @newstream
     def random_split(cls, self, frac=0.5, seed=None):
@@ -114,8 +131,8 @@ class Stream:
         being placed in the second stream.  Note that the same random seed is used when
         iterating over the stream, so the same split will be generated when iterating over
         the stream multiple times.  The `seed` argument can be used to manually specify
-        the integer random seed to use.  If `None` (default) then a random seed will be
-        selected from the range [0, 1_000_000].
+        the integer random seed to use.  If `seed=None` (default) then a random seed will
+        be selected from the range [0, 1_000_000].
         '''
         if seed is None:
             seed = random.randint(0, 1_000_000)
@@ -128,24 +145,23 @@ class Stream:
             rng = random.Random(seed)
             return (item for item in self if rng.random() > frac)
 
-        return cls(generator_func_a), cls(generator_func_b)
+        return cls.from_func(generator_func_a), cls.from_func(generator_func_b)
 
     @newstream
     def split(cls, self, n=2):
-        '''Split the stream into `n` streams with items being placed in each stream in
-        a round robin fashion.
+        '''Split the stream into `n` streams with items being placed in each stream in a
+        round robin fashion.
         '''
         def select_func(k):
             return (item for i, item in enumerate(self) if ((i-k) % n) == 0)
 
-        return tuple(cls(functools.partial(select_func, k)) for k in range(n))
+        return tuple(cls.from_func(functools.partial(select_func, k)) for k in range(n))
 
     @newstream
-    def trim_by_len(cls, self, low, high=float('inf')):
-        '''Filter the elements in the stream so that only items with a length, as found
-        by the `len` function, that falls in the range [low, high).
-        '''
-        return cls(lambda: filter(lambda item: low <= len(item) < high, self))
+    def unnest(cls, self):
+        return cls.from_func(lambda: (subitem for item in self for subitem in item))
+
+    unbatch = unnest
 
     @newstream
     def zip(cls, self, *args):
@@ -154,11 +170,18 @@ class Stream:
         the standard python `zip` function.  Note, the shortest of the zipped streams will
         determine the length of the resulting stream.
         '''
-        return cls(lambda: zip(*((self,) + args)))
+        return cls.from_func(lambda: zip(self, *args))
 
-    # FIXME: add zip_longest
+    @newstream
+    def zip_longest(cls, self, *args, fillvalue=None):
+        '''Zip the elements of multiple streams together, similar to the `.zip` method,
+        except that the longest of the zipped streams will determine the length of the
+        resulting stream and the value of the argument `fillvalue` will be used to pad
+        shorter streams.  This is analogous to the `itertools.zip_longest` function.
+        '''
+        return cls.from_func(lambda: itertools.zip_longest(self, *args, fillvalue=fillvalue))
 
-    #### dunders ####
+    #### magic functions ####
 
     def __add__(self, other):
         '''The addition operator for streams is equivalent to chaining the streams together
@@ -173,7 +196,7 @@ class Stream:
         not efficent for lazily evaluated streams.
         '''
         # pylint: disable=unexpected-special-method-signature
-        return cls(lambda: (item[idx] for item in self))
+        return cls.from_func(lambda: (item[idx] for item in self))
 
     def __iter__(self):
         '''A new iterator for the stream is created by calling `generator_func`.
