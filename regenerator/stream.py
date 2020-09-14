@@ -42,6 +42,7 @@ class Stream:
 
     @classmethod
     def from_func(cls, generator_func):
+        # pylint: disable=protected-access
         return cls.__new__(cls)._init(generator_func)
 
     @classmethod
