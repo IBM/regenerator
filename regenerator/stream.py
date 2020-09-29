@@ -121,9 +121,12 @@ class Stream:
 
     @newstream
     def slice(cls, self, *args, **kwargs):
+        '''Slice the items in the stream by `stop` or `start, stop[, step]`.  This is
+        analogous to the `iterstreams.islice` function.  Note: slicing large streams may
+        be very slow since all items before and in between the retrieved slices must be
+        processed.
+        '''
         return cls.from_func(lambda: itertools.islice(self, *args, **kwargs))
-
-    islice = slice
 
     @newstream
     def random_split(cls, self, frac=0.5, seed=None):
@@ -135,6 +138,9 @@ class Stream:
         the integer random seed to use.  If `seed=None` (default) then a random seed will
         be selected from the range [0, 1_000_000].
         '''
+        if not 0.0 <= frac <= 1.0:
+            raise ValueError('invalid frac `{}` not in [0, 1]'.format(frac))
+
         if seed is None:
             seed = random.randint(0, 1_000_000)
 
@@ -165,6 +171,13 @@ class Stream:
     unbatch = unnest
 
     @newstream
+    def unzip(cls, self, n=None):
+        if n is None:
+            n = len(next(iter(self)))
+
+        return tuple(cls.from_func(lambda: (item[idx] for item in self)) for idx in range(n))
+
+    @newstream
     def zip(cls, self, *args):
         '''Zip the elements of multiple streams together so that each item in the resulting
         stream is a tuple of items from each of the zipped streams.  This is analogous to
@@ -192,12 +205,16 @@ class Stream:
 
     @newstream
     def __getitem__(cls, self, idx):
-        '''The `[]` operator calls `.__getitem__` on each element of the stream.  Note
-        that it does *not* return the element at the `idx` position, as this is generally
-        not efficent for lazily evaluated streams.
+        '''
         '''
         # pylint: disable=unexpected-special-method-signature
-        return cls.from_func(lambda: (item[idx] for item in self))
+        if isinstance(idx, slice):
+            return self.slice(idx.start, idx.stop, idx.step)
+
+        if not isinstance(idx, int):
+            raise TypeError('indices must be integers or slices, not {}'.format(type(idx).__name__))
+
+        return cls.from_func(lambda: (item[i] for item, i in enumerate(self) if i == idx))
 
     def __iter__(self):
         '''A new iterator for the stream is created by calling `generator_func`.

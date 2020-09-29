@@ -22,6 +22,12 @@ def test_number_stream(number_stream):
     assert min(int_stream) == 0
     assert max(int_stream) == 255
 
+def test_nested_stream(nested_stream):
+    validate_stream(nested_stream, 10, tuple, 10)
+
+    for i, item in enumerate(nested_stream):
+        assert item == tuple(range(i*10, i*10+10))
+
 def test_empty_stream(empty_stream):
     validate_stream(empty_stream, 0, object)
 

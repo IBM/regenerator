@@ -9,8 +9,6 @@ def test_from_txt(names_path):
     validate_stream(txt_stream, 4, str)
 
 def test_from_empty_txt():
-    '''Validate that loading an empty file results in an empty stream.
-    '''
     # create a stream from an empty temp file and validate that its empty
     with tempfile.NamedTemporaryFile() as temp_file:
         txt_stream = Stream.from_txt(temp_file.name)
