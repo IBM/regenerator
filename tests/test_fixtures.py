@@ -28,6 +28,14 @@ def test_batched_stream(batched_stream):
     for i, item in enumerate(batched_stream):
         assert item == tuple(range(i*10, i*10+10))
 
+def test_zipped_stream(zipped_stream):
+    validate_stream(zipped_stream, 10, tuple, 3)
+
+    for integer, real, character in zipped_stream:
+        assert isinstance(integer, int)
+        assert isinstance(real, float)
+        assert isinstance(character, str) and len(character) == 1
+
 def test_empty_stream(empty_stream):
     validate_stream(empty_stream, 0, object)
 

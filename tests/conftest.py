@@ -1,4 +1,4 @@
-import os
+import os, string
 import pytest
 
 import regenerator
@@ -28,6 +28,12 @@ def number_stream(numbers_path):
 @pytest.fixture
 def batched_stream():
     return regenerator.Stream.from_func(lambda: (tuple(range(i, i+10)) for i in range(0, 100, 10)))
+
+@pytest.fixture
+def zipped_stream():
+    return regenerator.Stream.from_func(
+        lambda: ((integer, integer / 3.14159, character)
+            for integer, character in zip(range(10), string.ascii_lowercase)))
 
 @pytest.fixture
 def empty_stream():

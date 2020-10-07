@@ -159,13 +159,17 @@ class Stream:
         '''Split the stream into `n` streams with items being placed in each stream in a
         round robin fashion.
         '''
-        def select_func(k):
-            return (item for i, item in enumerate(self) if ((i-k) % n) == 0)
+        def select_func(i):
+            return (item for j, item in enumerate(self) if ((j-i) % n) == 0)
 
-        return tuple(cls.from_func(functools.partial(select_func, k)) for k in range(n))
+        return tuple(cls.from_func(functools.partial(select_func, i)) for i in range(n))
 
     @newstream
     def unbatch(cls, self):
+        '''Assume that each item in the stream is a sequence, e.g., tuples or lists, and
+        yield each subitem.  This unnests a stream of sequences and is the inverse of
+        `.batch` and `.chunk`.
+        '''
         return cls.from_func(lambda: (subitem for item in self for subitem in item))
 
     # alias for unbatch
@@ -173,10 +177,37 @@ class Stream:
 
     @newstream
     def unzip(cls, self, n=None):
-        if n is None:
-            n = len(next(iter(self)))
+        '''Assume that the items in the stream are sequences, i.e., tuples or lists, with
+        equal length and separate / unzip the stream into a tuple of separate streams.
+        This is the inverse of `.zip` and is analogous to `zip(*zipped_sequence)` when
+        working with regular python iterators.
 
-        return tuple(cls.from_func(lambda: (item[idx] for item in self)) for idx in range(n))
+        The argument `n` specifies the number of elements to expect in each data item.
+        If `n` is `None` (default) then `n` will be set to the length of the first item in
+        the stream.  Note that an empty stream will raise a `ValueError` because it is not
+        possible to infer the length of the data items.  If an item in the stream has a
+        length that is greater than `n` it will be truncated.  If an item has length less
+        than `n` then an `IndexError` will be raised at runtime.
+        '''
+        if n is None:
+            try:
+                n = len(next(iter(self)))
+            except StopIteration as ex:
+                raise ValueError('cannot infer length of data items from empty stream')
+
+        def select_func(i):
+            return (item[i] for item in self)
+
+        return tuple(cls.from_func(functools.partial(select_func, i)) for i in range(n))
+
+    @newstream
+    def column(cls, self, idx):
+        '''Assume that the items in the stream can be indexed via `.__getitem__`, e.g.,
+        for tuples or lists, and return a stream that selects the subitem at the `idx`'th
+        position for each item in the stream.  In other words, create a new stream that
+        yields the column with index `idx`.
+        '''
+        return cls.from_func(item[idx] for item in self)
 
     @newstream
     def zip(cls, self, *args):
@@ -215,6 +246,7 @@ class Stream:
         if not isinstance(idx, int):
             raise TypeError('indices must be integers or slices, not {}'.format(type(idx).__name__))
 
+        # FIXME: need to break when it's found
         return cls.from_func(lambda: (item[i] for item, i in enumerate(self) if i == idx))
 
     def __iter__(self):
