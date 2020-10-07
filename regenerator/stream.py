@@ -165,10 +165,11 @@ class Stream:
         return tuple(cls.from_func(functools.partial(select_func, k)) for k in range(n))
 
     @newstream
-    def unnest(cls, self):
+    def unbatch(cls, self):
         return cls.from_func(lambda: (subitem for item in self for subitem in item))
 
-    unbatch = unnest
+    # alias for unbatch
+    unchunk = unbatch
 
     @newstream
     def unzip(cls, self, n=None):

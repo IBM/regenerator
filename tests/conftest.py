@@ -26,7 +26,7 @@ def number_stream(numbers_path):
     return regenerator.Stream.from_txt(numbers_path).map(lambda item: item.rstrip())
 
 @pytest.fixture
-def nested_stream():
+def batched_stream():
     return regenerator.Stream.from_func(lambda: (tuple(range(i, i+10)) for i in range(0, 100, 10)))
 
 @pytest.fixture
