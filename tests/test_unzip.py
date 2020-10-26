@@ -52,6 +52,7 @@ def test_empty_stream(empty_stream):
 def test_is_lazy(counter_stream, counter_stream2):
     zipped_stream = counter_stream.zip(counter_stream2)
     unzipped_stream1, unzipped_stream2 = zipped_stream.unzip(2)
+
     validate_stream(unzipped_stream1, 10, int)
     validate_stream(unzipped_stream2, 10, int)
 

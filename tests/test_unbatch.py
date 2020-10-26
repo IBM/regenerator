@@ -29,6 +29,9 @@ def test_unbatch(number_stream):
 
     assert tuple(number_stream) == tuple(unbatched_stream)
 
+def test_unchunk():
+    assert Stream.unchunk is Stream.unbatch
+
 def test_empty_stream(empty_stream):
     unbatched_stream = empty_stream.unbatch()
     validate_stream(unbatched_stream, 0, object)

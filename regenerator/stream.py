@@ -193,7 +193,7 @@ class Stream:
             try:
                 n = len(next(iter(self)))
             except StopIteration as ex:
-                raise ValueError('cannot infer length of data items from empty stream')
+                raise ValueError('cannot infer length of items from empty stream')
 
         def select_func(i):
             return (item[i] for item in self)
@@ -207,7 +207,10 @@ class Stream:
         position for each item in the stream.  In other words, create a new stream that
         yields the column with index `idx`.
         '''
-        return cls.from_func(item[idx] for item in self)
+        return cls.from_func(lambda: (item[idx] for item in self))
+
+    # alias for column
+    col = column
 
     @newstream
     def zip(cls, self, *args):
@@ -246,8 +249,14 @@ class Stream:
         if not isinstance(idx, int):
             raise TypeError('indices must be integers or slices, not {}'.format(type(idx).__name__))
 
-        # FIXME: need to break when it's found
-        return cls.from_func(lambda: (item[i] for item, i in enumerate(self) if i == idx))
+        if idx < 0:
+            raise IndexError('negative indexing not supported')
+
+        for i, item in enumerate(self):
+            if i == idx:
+                return item
+        else:
+            raise IndexError('stream index out of range')
 
     def __iter__(self):
         '''A new iterator for the stream is created by calling `generator_func`.
