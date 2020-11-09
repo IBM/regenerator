@@ -35,6 +35,10 @@ class Stream:
         self._init(generator_func)
 
     def _init(self, generator_func):
+        '''Initialize a new stream from a generator function.  This is outside of the
+        constructor so that it can also be called by `from_func`.  This is for internal
+        use only and allows new streams to be initialized from outside of the constructor.
+        '''
         self.generator_func = generator_func
         return self
 
@@ -42,6 +46,11 @@ class Stream:
 
     @classmethod
     def from_func(cls, generator_func):
+        '''Construct a new stream from the provided generator function.  When adding
+        methods to the stream class (including on subclasses) that return new streams,
+        this classmethod should be used instead of calling the constructor directly.
+        The allows subclasses to override the constructor without breaking these methods.
+        '''
         # pylint: disable=protected-access
         return cls.__new__(cls)._init(generator_func)
 
@@ -192,7 +201,8 @@ class Stream:
         if n is None:
             try:
                 n = len(next(iter(self)))
-            except StopIteration as ex:
+            except StopIteration:
+                # pylint: disable=raise-missing-from
                 raise ValueError('cannot infer length of items from empty stream')
 
         def select_func(i):
@@ -240,11 +250,16 @@ class Stream:
 
     @newstream
     def __getitem__(cls, self, idx):
-        '''
+        '''Index or slice into the stream.  If `idx` is a slice, then a list containing
+        the sliced elements is returned.  If `idx` is an integer, then the sole element
+        located at the provided index will be returned.  Note that these operations may
+        be slow since all elements in the stream must be iterated over until the desired
+        items are found.  Negative indexing is not supported.  If want to create a stream
+        over a slice, instead of a list, consider using the `slice` method instead.
         '''
         # pylint: disable=unexpected-special-method-signature
         if isinstance(idx, slice):
-            return self.slice(idx.start, idx.stop, idx.step)
+            return list(self.slice(idx.start, idx.stop, idx.step))
 
         if not isinstance(idx, int):
             raise TypeError('indices must be integers or slices, not {}'.format(type(idx).__name__))
@@ -255,8 +270,8 @@ class Stream:
         for i, item in enumerate(self):
             if i == idx:
                 return item
-        else:
-            raise IndexError('stream index out of range')
+
+        raise IndexError('stream index out of range')
 
     def __iter__(self):
         '''A new iterator for the stream is created by calling `generator_func`.
