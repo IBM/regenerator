@@ -33,9 +33,13 @@ for row in clean_stream:
 
 * If you would like to apply some preprocessing steps to your data but have those steps change in a nondeterministic way after each iteration, e.g., data augmentation.
 ```python
+from glob import glob
+
 from regenerator import Stream
 
-def load_images(filenames):
+filenames = glob('images/*.png')
+
+def load_images():
     '''Generator function to load a bunch of images.
     '''
     for filename in filenames:
