@@ -101,6 +101,18 @@ pip3 install 'git+ssh://git@github.ibm.com/Elliott-Forney/regenerator'
 
 An official PyPi package will be available in the near future.
 
+## Development
+
+When submitting a pull request, please make sure that the unit tests pass and have 100% coverage:
+```bash
+pytest -s --cov=regenerator tests
+```
+
+Also, please verify that `pylint` passes with a score of 10/10:
+```bash
+pylint regenerator
+```
+
 <!-- License and Authors is optional here, but gives you the ability to highlight who is involed in the project -->
 ## License & Authors
 
