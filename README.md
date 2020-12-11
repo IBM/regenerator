@@ -100,7 +100,7 @@ model = train(token_stream)
 To install, point `pip3` directly at GitHub:
 
 ```bash
-pip3 install 'git+ssh://git@github.ibm.com/Elliott-Forney/regenerator'
+pip3 install 'git+ssh://git@github.com/IBM/regenerator'
 ```
 
 An official PyPi package will be available in the near future.
