@@ -7,7 +7,7 @@ basedir = os.path.dirname(__file__)
 
 @pytest.fixture
 def list_stream():
-    return regenerator.Stream.from_iterable(list(range(10)))
+    return regenerator.Stream.from_iterable(range(10))
 
 @pytest.fixture
 def names_path():
