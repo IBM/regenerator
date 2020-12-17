@@ -63,13 +63,11 @@ class CustomStream(regenerator.Stream):
     def __init__(self, n=24):
         super().__init__(lambda: iter(range(n)))
 
-    @regenerator.newstream
-    def even(cls, self):
-        return cls.from_func(lambda: (item for item in self if item % 2 == 0))
+    def even(self):
+        return self.from_func(lambda: (item for item in self if item % 2 == 0))
 
-    @regenerator.newstream
-    def increment(cls, self):
-        return cls.from_func(lambda: (item + 1 for item in self))
+    def increment(self):
+        return self.from_func(lambda: (item + 1 for item in self))
 
 @pytest.fixture
 def custom_stream():
