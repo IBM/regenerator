@@ -228,16 +228,16 @@ class Stream:
         return self.chain(other)
 
     def __getitem__(self, idx):
-        '''Index or slice into the stream.  If `idx` is a slice, then a list containing
-        the sliced elements is returned.  If `idx` is an integer, then the sole element
-        located at the provided index will be returned.  Note that these operations may
-        be slow since all elements in the stream must be iterated over until the desired
-        items are found.  Negative indexing is not supported.  If want to create a stream
-        over a slice, instead of a list, consider using the `slice` method instead.
+        '''Index or slice into the stream.  If `idx` is a slice, then a new stream
+        containing the sliced elements is returned, equivalent to the `.slice` method.
+        If `idx` is an integer, then the sole element located at the provided index will
+        be returned.  Note that these operations may be slow since all preceding elements
+        in the stream must be iterated over until the desired items are found.  Negative
+        indexing is not supported.
         '''
         # pylint: disable=unexpected-special-method-signature
         if isinstance(idx, slice):
-            return list(self.slice(idx.start, idx.stop, idx.step))
+            return self.slice(idx.start, idx.stop, idx.step)
 
         if not isinstance(idx, int):
             raise TypeError('indices must be integers or slices, not {}'.format(type(idx).__name__))
