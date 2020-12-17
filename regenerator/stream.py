@@ -2,7 +2,6 @@
 '''
 import functools, itertools, random
 
-
 class Stream:
     '''A ReGenerator `Stream` is an iterable container class that is designed to permit
     lazy processing of data in a streaming fashion.  The data items produced by a stream
@@ -49,11 +48,11 @@ class Stream:
     @classmethod
     def from_iterable(cls, data):
         '''Create a new stream from a python iterable, generally a sequence like a list or
-        a tuple.  Note that `data` can be pretty much anything you can pass as an argument
-        to the `iter` builtin as long as it can be iterated over *multiple times*.  If
-        iterating over `data` exhausts the underlying elements, e.g., for the result of
-        calling `open`, then your stream will become empty after the first time it is
-        iterated over.
+        a tuple.  Ranges are also acceptable.  Note that `data` can be pretty much anything
+        you can pass as an argument to the `iter` builtin as long as it can be iterated
+        over *multiple times*.  If iterating over `data` exhausts the underlying elements,
+        e.g., for the result of calling `open`, then your stream will become empty after
+        the first time it is iterated over.
         '''
         return cls.from_func(lambda: iter(data))
 
@@ -261,3 +260,32 @@ class Stream:
         the entire stream to be iterated over, and so can be slow for large streams.
         '''
         return sum(1 for _ in self)
+
+    def __repr__(self):
+        '''Create a human readable version of this stream that includes the `repr`'s of
+        the first few data items in the stream.  The data items will be separated by a
+        comma if they are short or a newline if they are longer.  An ellipsis will be
+        added at the end of long streams.
+        '''
+        # maximum number of items to represent
+        max_items = 5
+
+        # if the length of the string representation of any of these items is longer than
+        # this limit then the separator will be a newline instead of a comma
+        break_len = 40
+
+        # the class name will always be at the top
+        header = f'<{self.__class__.__name__}>:'
+
+        # get the repr for `max_items + 1` items in the stream
+        # we get `+1` elements as an easy way to identify if there are more
+        item_reprs = list(map(repr, self[:max_items + 1]))
+        if len(item_reprs) >= max_items:
+            item_reprs[-1] = '...'
+
+        # figure the item separator and join the reprs
+        max_repr_len = max(map(len, item_reprs), default=0)
+        item_sep = ' ' if max_repr_len < break_len else '\n'
+
+        # combine the header, put commas between elements and insert the item separator
+        return (header + item_sep) + (',' + item_sep).join(item_reprs)
