@@ -1,15 +1,7 @@
-'''Reentrant generator (ReGenerator) stream.'''
+'''Reentrant generator (ReGenerator) stream.
+'''
 import functools, itertools, random
 
-def newstream(func):
-    '''Decorator for methods that return new stream instances.  First argument is the
-    class so that streams can play nicely with inheritance and second argument is self so
-    that member attributes can be accessed.
-    '''
-    @functools.wraps(func)
-    def wrapped(self, *args, **kwargs):
-        return func(self.__class__, self, *args, **kwargs)
-    return wrapped
 
 class Stream:
     '''A ReGenerator `Stream` is an iterable container class that is designed to permit
@@ -80,8 +72,7 @@ class Stream:
 
     #### modifiers ####
 
-    @newstream
-    def batch(cls, self, size):
+    def batch(self, size):
         '''Combine `size` adjacent elements of together into tuples.  This process is often
         called batching or chunking.
         '''
@@ -89,56 +80,50 @@ class Stream:
             it = iter(self)
             return iter(lambda: tuple(itertools.islice(it, size)), ())
 
-        return cls.from_func(generator_func)
+        return self.from_func(generator_func)
 
     # alias for batch
     chunk = batch
 
-    @newstream
-    def chain(cls, self, *args):
+    def chain(self, *args):
         '''Chain multiple streams together sequentially, i.e., return the elements of
         the first stream in `args` followed by the elements in the second stream, et cetra.
         This is analogous to the `itertools.chain` function.
         '''
-        return cls.from_func(lambda: itertools.chain(self, *args))
+        return self.from_func(lambda: itertools.chain(self, *args))
 
-    @newstream
-    def fix(cls, self):
+    def fix(self):
         '''Evaluate the stream and place all items it contains into memory.  This process
         "fixes" the stream at the current point in time.  This may improve computational
         performance because the stream will no longer be lazily evaluated on demand.
         Beware, however, that this may consume large amounts of memory for large streams.
         '''
-        return cls.from_iterable(tuple(self))
+        return self.from_iterable(tuple(self))
 
     eager = fix
 
-    @newstream
-    def filter(cls, self, func=None):
+    def filter(self, func=None):
         '''Keep only items in the stream where `func(item)` evaluates to `True`.
         If `None` (default) then `None` values will be removed.  This is analogous to the
         standard python `filter` function.
         '''
-        return cls.from_func(lambda: filter(func, self))
+        return self.from_func(lambda: filter(func, self))
 
-    @newstream
-    def map(cls, self, func):
+    def map(self, func):
         '''Apply `func` to each element in the stream.  This is analogous to the standard
         python `map` function.
         '''
-        return cls.from_func(lambda: map(func, self))
+        return self.from_func(lambda: map(func, self))
 
-    @newstream
-    def slice(cls, self, *args, **kwargs):
+    def slice(self, *args, **kwargs):
         '''Slice the items in the stream by `stop` or `start, stop[, step]`.  This is
         analogous to the `iterstreams.islice` function.  Note: slicing large streams may
         be very slow since all items before and in between the retrieved slices must be
         processed.
         '''
-        return cls.from_func(lambda: itertools.islice(self, *args, **kwargs))
+        return self.from_func(lambda: itertools.islice(self, *args, **kwargs))
 
-    @newstream
-    def random_split(cls, self, frac=0.5, seed=None):
+    def random_split(self, frac=0.5, seed=None):
         '''Split the stream into two new streams with randomly selected elements randomly
         with probability of `frac` of being placed in the first stream and `1.0 - frac` of
         being placed in the second stream.  Note that the same random seed is used when
@@ -161,31 +146,28 @@ class Stream:
             rng = random.Random(seed)
             return (item for item in self if rng.random() > frac)
 
-        return cls.from_func(generator_func_a), cls.from_func(generator_func_b)
+        return self.from_func(generator_func_a), self.from_func(generator_func_b)
 
-    @newstream
-    def split(cls, self, n=2):
+    def split(self, n=2):
         '''Split the stream into `n` streams with items being placed in each stream in a
         round robin fashion.
         '''
         def select_func(i):
             return (item for j, item in enumerate(self) if ((j-i) % n) == 0)
 
-        return tuple(cls.from_func(functools.partial(select_func, i)) for i in range(n))
+        return tuple(self.from_func(functools.partial(select_func, i)) for i in range(n))
 
-    @newstream
-    def unbatch(cls, self):
+    def unbatch(self):
         '''Assume that each item in the stream is a sequence, e.g., tuples or lists, and
         yield each subitem.  This unnests a stream of sequences and is the inverse of
         `.batch` and `.chunk`.
         '''
-        return cls.from_func(lambda: (subitem for item in self for subitem in item))
+        return self.from_func(lambda: (subitem for item in self for subitem in item))
 
     # alias for unbatch
     unchunk = unbatch
 
-    @newstream
-    def unzip(cls, self, n=None):
+    def unzip(self, n=None):
         '''Assume that the items in the stream are sequences, i.e., tuples or lists, with
         equal length and separate / unzip the stream into a tuple of separate streams.
         This is the inverse of `.zip` and is analogous to `zip(*zipped_sequence)` when
@@ -208,37 +190,34 @@ class Stream:
         def select_func(i):
             return (item[i] for item in self)
 
-        return tuple(cls.from_func(functools.partial(select_func, i)) for i in range(n))
+        return tuple(self.from_func(functools.partial(select_func, i)) for i in range(n))
 
-    @newstream
-    def column(cls, self, idx):
+    def column(self, idx):
         '''Assume that the items in the stream can be indexed via `.__getitem__`, e.g.,
         for tuples or lists, and return a stream that selects the subitem at the `idx`'th
         position for each item in the stream.  In other words, create a new stream that
         yields the column with index `idx`.
         '''
-        return cls.from_func(lambda: (item[idx] for item in self))
+        return self.from_func(lambda: (item[idx] for item in self))
 
     # alias for column
     col = column
 
-    @newstream
-    def zip(cls, self, *args):
+    def zip(self, *args):
         '''Zip the elements of multiple streams together so that each item in the resulting
         stream is a tuple of items from each of the zipped streams.  This is analogous to
         the standard python `zip` function.  Note, the shortest of the zipped streams will
         determine the length of the resulting stream.
         '''
-        return cls.from_func(lambda: zip(self, *args))
+        return self.from_func(lambda: zip(self, *args))
 
-    @newstream
-    def zip_longest(cls, self, *args, fillvalue=None):
+    def zip_longest(self, *args, fillvalue=None):
         '''Zip the elements of multiple streams together, similar to the `.zip` method,
         except that the longest of the zipped streams will determine the length of the
         resulting stream and the value of the argument `fillvalue` will be used to pad
         shorter streams.  This is analogous to the `itertools.zip_longest` function.
         '''
-        return cls.from_func(lambda: itertools.zip_longest(self, *args, fillvalue=fillvalue))
+        return self.from_func(lambda: itertools.zip_longest(self, *args, fillvalue=fillvalue))
 
     #### magic functions ####
 
@@ -248,8 +227,7 @@ class Stream:
         '''
         return self.chain(other)
 
-    @newstream
-    def __getitem__(cls, self, idx):
+    def __getitem__(self, idx):
         '''Index or slice into the stream.  If `idx` is a slice, then a list containing
         the sliced elements is returned.  If `idx` is an integer, then the sole element
         located at the provided index will be returned.  Note that these operations may
