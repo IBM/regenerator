@@ -1,3 +1,3 @@
 # MAINTAINERS
 
-Elliott Forney - Elliott.Forney@ibm.com
+Elliott Forney - elliott.forney@gmail.com

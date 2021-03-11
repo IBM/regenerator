@@ -122,4 +122,4 @@ pylint regenerator
 
 ReGenerator is provided by IBM under a two-clause BSD license.  For details, please review [the full LICENSE file found here](LICENSE).
 
-- Author: Elliott Forney <Elliott.Forney@ibm.com>
+- Author: Elliott Forney <elliott.forney@gmail.com>

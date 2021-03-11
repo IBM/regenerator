@@ -14,7 +14,7 @@ setuptools.setup(
     name='regenerator',
     version=version,
     author='IBM / Elliott Forney',
-    author_email='Elliott.Forney@ibm.com',
+    author_email='elliott.forney@gmail.com',
     description='ReGenerator a reentrant generator streams for lazy data processing.',
     license=license,
     url='https://github.com/ibm/regenerator',
